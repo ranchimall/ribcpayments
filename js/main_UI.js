@@ -1,29 +1,21 @@
+"use strict";
 // Global variables
 const appPages = ['dashboard', 'settings'];
-const domRefs = {};
-let timerId;
-const currentYear = new Date().getFullYear();
-
+// Global variables
+const { html, render: renderElem } = uhtml;
 //Checks for internet connection status
 if (!navigator.onLine)
-    notify(
-        "There seems to be a problem connecting to the internet, Please check you internet connection.",
-        "error",
-        { sound: true }
-    );
-window.addEventListener("offline", () => {
-    notify(
-        "There seems to be a problem connecting to the internet, Please check you internet connection.",
-        "error",
-        { pinned: true, sound: true }
-    );
-});
-window.addEventListener("online", () => {
-    getRef("notification_drawer").clearAll();
-    notify("We are back online.", "success");
-});
+    floGlobals.connectionErrorNotification = notify('There seems to be a problem connecting to the internet, Please check you internet connection.', 'error')
+window.addEventListener('offline', () => {
+    floGlobals.connectionErrorNotification = notify('There seems to be a problem connecting to the internet, Please check you internet connection.', 'error')
+})
+window.addEventListener('online', () => {
+    getRef('notification_drawer').remove(floGlobals.connectionErrorNotification)
+    notify('We are back online.', 'success')
+})
 
 // Use instead of document.getElementById
+const domRefs = {};
 function getRef(elementId) {
     if (!domRefs.hasOwnProperty(elementId)) {
         domRefs[elementId] = {
@@ -43,22 +35,6 @@ function getRef(elementId) {
     }
 }
 
-// returns dom with specified element
-function createElement(tagName, options) {
-    const { className, textContent, innerHTML, attributes = {} } = options
-    const elem = document.createElement(tagName)
-    for (let attribute in attributes) {
-        elem.setAttribute(attribute, attributes[attribute])
-    }
-    if (className)
-        elem.className = className
-    if (textContent)
-        elem.textContent = textContent
-    if (innerHTML)
-        elem.innerHTML = innerHTML
-    return elem
-}
-
 // Use when a function needs to be executed after user finishes changes
 const debounce = (callback, wait) => {
     let timeoutId = null;
@@ -70,169 +46,98 @@ const debounce = (callback, wait) => {
     };
 }
 
-// Limits the rate of function execution
-function throttle(func, delay) {
-    // If setTimeout is already scheduled, no need to do anything
-    if (timerId) {
-        return;
-    }
-
-    // Schedule a setTimeout after delay seconds
-    timerId = setTimeout(function () {
-        func();
-
-        // Once setTimeout function execution is finished, timerId = undefined so that in
-        // the next scroll event function execution can be scheduled by the setTimeout
-        timerId = undefined;
-    }, delay);
-}
-
-class Stack {
-    constructor() {
-        this.items = [];
-    }
-    push(element) {
-        this.items.push(element);
-    }
-    pop() {
-        if (this.items.length == 0)
-        return "Underflow";
-        return this.items.pop();
-    }
-    peek() {
-        return this.items[this.items.length - 1];
-    }
-}
-
-// function required for popups or modals to appear
-function showPopup(popupId, pinned) {
-    zIndex++
-    getRef(popupId).setAttribute('style', `z-index: ${zIndex}`)
-    popupStack = getRef(popupId).show({ pinned, popupStack })
-    return getRef(popupId);
-}
-
-// hides the popup or modal 
-function hidePopup() {
-    if (popupStack.peek() === undefined)
-        return;
-    popupStack.peek().popup.hide()
-}
-
-// displays a popup for asking permission. Use this instead of JS confirm
-const getConfirmation = (title, message, cancelText = 'Cancel', confirmText = 'OK') => {
-    return new Promise(resolve => {
-        showPopup('confirmation_popup', true)
-        getRef('confirm_title').textContent = title;
-        getRef('confirm_message').textContent = message;
-        let cancelButton = getRef('confirmation_popup').children[2].children[0],
-            submitButton = getRef('confirmation_popup').children[2].children[1]
-        submitButton.textContent = confirmText
-        cancelButton.textContent = cancelText
-        submitButton.onclick = () => {
-            hidePopup()
-            resolve(true);
-        }
-        cancelButton.onclick = () => {
-            hidePopup()
-            resolve(false);
-        }
-    })
-}
-
-// displays a popup for asking user input. Use this instead of JS prompt
-async function getPromptInput(title, message = '', isPassword = true, cancelText = 'Cancel', confirmText = 'OK') {
-    showPopup('prompt_popup', true)
-    getRef('prompt_title').textContent = title;
-    let input = getRef('prompt_input');
-    input.setAttribute("placeholder", message)
-    let buttons = getRef('prompt_popup').querySelectorAll("sm-button");
-    if (isPassword)
-        input.setAttribute("type", "text")
-    else
-        input.setAttribute("type", "password")
-    input.focusIn()
-    buttons[0].textContent = cancelText;
-    buttons[1].textContent = confirmText;
-    return new Promise((resolve, reject) => {
-        buttons[0].onclick = () => {
-            hidePopup()
-            return;
-        }
-        buttons[1].onclick = () => {
-            let value = input.value;
-            hidePopup()
-            resolve(value)
-        }
-    })
-}
-
 //Function for displaying toast notifications. pass in error for mode param if you want to show an error.
 function notify(message, mode, options = {}) {
-    const { pinned = false, sound = false } = options
     let icon
     switch (mode) {
         case 'success':
-            icon = `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="none" d="M0 0h24v24H0z"/><path d="M10 15.172l9.192-9.193 1.415 1.414L10 18l-6.364-6.364 1.414-1.414z"/></svg>`
+            icon = `<svg class="icon icon--success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="none" d="M0 0h24v24H0z"/><path d="M10 15.172l9.192-9.193 1.415 1.414L10 18l-6.364-6.364 1.414-1.414z"/></svg>`
             break;
         case 'error':
-            icon = `<svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm0-8v6h2V7h-2z"/></svg>`
+            icon = `<svg class="icon icon--error" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm0-8v6h2V7h-2z"/></svg>`
+            options.pinned = true
             break;
     }
-    getRef("notification_drawer").push(message, { pinned, icon });
-    if (navigator.onLine && sound) {
-        getRef("notification_sound").currentTime = 0;
-        getRef("notification_sound").play();
+    if (mode === 'error') {
+        console.error(message)
     }
+    return getRef("notification_drawer").push(message, { icon, ...options });
 }
 
-function getFormatedTime(time, relative) {
+function getFormattedTime(timestamp, format) {
     try {
-        if (String(time).indexOf("_")) time = String(time).split("_")[0];
-        const intTime = parseInt(time);
-        if (String(intTime).length < 13) time *= 1000;
-        let timeFrag = new Date(intTime).toString().split(" "),
-            day = timeFrag[0],
-            month = timeFrag[1],
-            date = timeFrag[2],
-            year = timeFrag[3],
-            minutes = new Date(intTime).getMinutes(),
-            hours = new Date(intTime).getHours(),
-            currentTime = new Date().toString().split(" ");
+        timestamp = parseInt(timestamp)
+        if (String(timestamp).length < 13)
+            timestamp *= 1000
+        let [day, month, date, year] = new Date(timestamp).toString().split(' '),
+            minutes = new Date(timestamp).getMinutes(),
+            hours = new Date(timestamp).getHours(),
+            currentTime = new Date().toString().split(' ')
 
-        minutes = minutes < 10 ? `0${minutes}` : minutes;
+        minutes = minutes < 10 ? `0${minutes}` : minutes
         let finalHours = ``;
-        if (hours > 12) finalHours = `${hours - 12}:${minutes}`;
-        else if (hours === 0) finalHours = `12:${minutes}`;
-        else finalHours = `${hours}:${minutes}`;
+        if (hours > 12)
+            finalHours = `${hours - 12}:${minutes}`
+        else if (hours === 0)
+            finalHours = `12:${minutes}`
+        else
+            finalHours = `${hours}:${minutes}`
 
-        finalHours = hours >= 12 ? `${finalHours} PM` : `${finalHours} AM`;
-        if (relative) {
-            return `${date} ${month} ${year}`;
-        } else return `${finalHours} ${month} ${date} ${year}`;
+        finalHours = hours >= 12 ? `${finalHours} PM` : `${finalHours} AM`
+        switch (format) {
+            case 'date-only':
+                return `${month} ${date}, ${year}`;
+                break;
+            case 'time-only':
+                return finalHours;
+            case 'relative':
+                return relativeTime.from(timestamp)
+            default:
+                return `${month} ${date}, ${year} at ${finalHours}`;
+        }
     } catch (e) {
         console.error(e);
-        return time;
+        return timestamp;
     }
 }
 
-window.addEventListener('hashchange', e => showPage(window.location.hash))
+window.addEventListener('hashchange', e => routeTo(window.location.hash))
 window.addEventListener("load", () => {
-    document.body.classList.remove('hide-completely')
-    showPage(window.location.hash)
-    // document.querySelectorAll('sm-input[data-flo-id]').forEach(input => input.customValidation = validateAddr)
-    document.addEventListener('keyup', (e) => {
-        if (e.code === 'Escape') {
-            hidePopup()
-        }
-    })
+    document.body.classList.remove('hidden')
     document.addEventListener("pointerdown", (e) => {
-        if (e.target.closest("button, sm-button:not([disabled]), .interact")) {
-            createRipple(e, e.target.closest("button, sm-button, .interact"));
+        if (e.target.closest("button, .interact")) {
+            createRipple(e, e.target.closest("button, .interact"));
         }
     });
     document.addEventListener('copy', () => {
         notify('copied', 'success')
+    })
+    document.addEventListener('keydown', e => {
+        if (e.key === '/') {
+            e.preventDefault();
+            getRef('search_payments').focusIn()
+        }
+    })
+    getRef('search_payments').addEventListener('input', e => {
+        const searchQuery = e.target.value.toLowerCase();
+        const filteredInterns = []
+        for (const floId in floGlobals.internTxs) {
+            if (floId.toLowerCase().includes(searchQuery) || floGlobals.appObjects.RIBC.internList[floId].toLowerCase().includes(searchQuery))
+                filteredInterns.push({ floId, name: floGlobals.appObjects.RIBC.internList[floId] })
+        }
+        // sort filtered by relevance
+        filteredInterns.sort((a, b) => {
+            if (a.floId.toLowerCase().includes(searchQuery) && b.floId.toLowerCase().includes(searchQuery)) {
+                return a.name.toLowerCase().includes(searchQuery) ? -1 : 1
+            } else if (a.floId.toLowerCase().includes(searchQuery)) {
+                return -1
+            } else if (b.floId.toLowerCase().includes(searchQuery)) {
+                return 1
+            } else {
+                return a.name.toLowerCase().includes(searchQuery) ? -1 : 1
+            }
+        })
+        renderElem(getRef("intern_payment_list"), html`${filteredInterns.map(intern => render.internCard(intern.floId))}`);
     })
 });
 
@@ -264,42 +169,271 @@ function createRipple(event, target) {
     };
 }
 
-function showPage(targetPage, options = {}) {
-    const { firstLoad, hashChange } = options
+const appState = {
+    params: {},
+}
+function routeTo(targetPage) {
+    const routingAnimation = { in: slideInUp, out: slideOutUp }
     let pageId
+    let subPageId1
+    let searchParams
+    let params
     if (targetPage === '') {
-        pageId = 'overview_page'
+        pageId = 'home'
+        history.replaceState(null, null, '#/home');
+    } else {
+        if (targetPage.includes('/')) {
+            if (targetPage.includes('?')) {
+                const splitAddress = targetPage.split('?')
+                searchParams = splitAddress.pop();
+                [, pageId, subPageId1] = splitAddress.pop().split('/')
+            } else {
+                [, pageId, subPageId1] = targetPage.split('/')
+            }
+        } else {
+            pageId = targetPage
+        }
     }
-    else {
-        pageId = targetPage.includes('#') ? targetPage.split('#')[1] : targetPage
+    if (!getRef(pageId)?.classList.contains('page')) return
+    appState.currentPage = pageId
+
+    if (searchParams) {
+        const urlSearchParams = new URLSearchParams('?' + searchParams);
+        params = Object.fromEntries(urlSearchParams.entries());
     }
-    if(!appPages.includes(pageId)) return
-    document.querySelector('.page:not(.hide-completely)').classList.add('hide-completely')
-    document.querySelector('.nav-list__item--active').classList.remove('nav-list__item--active')
-    getRef(pageId).classList.remove('hide-completely')
-    getRef(pageId).animate([
-        {
-            opacity: 0,
-            transform: 'translateX(-1rem)'
-        },
-        {
-            opacity: 1,
-            transform: 'none'
-        },
-    ],
-        {
-            duration: 300,
-            easing: 'ease'
-        })
-    const targetListItem = document.querySelector(`.nav-list__item[href="#${pageId}"]`)
-    targetListItem.classList.add('nav-list__item--active')
-    if (firstLoad && window.innerWidth > 640 && targetListItem.getBoundingClientRect().top > getRef('side_nav').getBoundingClientRect().height) {
-        getRef('side_nav').scrollTo({
-            top: (targetListItem.getBoundingClientRect().top - getRef('side_nav').getBoundingClientRect().top + getRef('side_nav').scrollTop),
-            behavior: 'smooth'
-        })
+    if (params)
+        appState.params = params
+    switch (pageId) {
+        case 'intern':
+            if (params && params.id) {
+                render.intern(params.id)
+            }
+            break;
     }
-    if (hashChange && window.innerWidth < 640) {
-        getRef('side_nav').close()
+    switch (appState.lastPage) {
+        case 'intern':
+            routingAnimation.in = slideInRight;
+            routingAnimation.out = slideOutRight;
+            break;
+    }
+    switch (pageId) {
+        case 'intern':
+            routingAnimation.in = slideInLeft;
+            routingAnimation.out = slideOutLeft;
+            break;
+    }
+    if (appState.lastPage !== pageId) {
+        document.querySelectorAll('.page').forEach(page => page.classList.add('hidden'))
+        getRef(pageId).closest('.page').classList.remove('hidden')
+        if (appState.lastPage) {
+            getRef(appState.lastPage).animate(routingAnimation.out, { duration: floGlobals.prefersReducedMotion ? 0 : 150, fill: 'forwards', easing: 'ease' }).onfinish = (e) => {
+                e.target.effect.target.classList.add('hidden')
+            }
+        }
+        getRef(pageId).classList.remove('hidden')
+        getRef(pageId).animate(routingAnimation.in, { duration: floGlobals.prefersReducedMotion ? 0 : 150, fill: 'forwards', easing: 'ease' }).onfinish = (e) => {
+            appState.lastPage = pageId
+        }
+    }
+}
+const slideInLeft = [
+    {
+        opacity: 0,
+        transform: 'translateX(1rem)'
+    },
+    {
+        opacity: 1,
+        transform: 'translateX(0)'
+    }
+]
+const slideOutLeft = [
+    {
+        opacity: 1,
+        transform: 'translateX(0)'
+    },
+    {
+        opacity: 0,
+        transform: 'translateX(-1rem)'
+    },
+]
+const slideInRight = [
+    {
+        opacity: 0,
+        transform: 'translateX(-1rem)'
+    },
+    {
+        opacity: 1,
+        transform: 'translateX(0)'
+    }
+]
+const slideOutRight = [
+    {
+        opacity: 1,
+        transform: 'translateX(0)'
+    },
+    {
+        opacity: 0,
+        transform: 'translateX(1rem)'
+    },
+]
+const slideInDown = [
+    {
+        opacity: 0,
+        transform: 'translateY(-1rem)'
+    },
+    {
+        opacity: 1,
+        transform: 'translateY(0)'
+    },
+]
+const slideOutDown = [
+    {
+        opacity: 1,
+        transform: 'translateY(0)'
+    },
+    {
+        opacity: 0,
+        transform: 'translateY(1rem)'
+    },
+]
+const slideInUp = [
+    {
+        opacity: 0,
+        transform: 'translateY(1rem)'
+    },
+    {
+        opacity: 1,
+        transform: 'translateY(0)'
+    },
+]
+const slideOutUp = [
+    {
+        opacity: 1,
+        transform: 'translateY(0)'
+    },
+    {
+        opacity: 0,
+        transform: 'translateY(-1rem)'
+    },
+]
+
+floGlobals.internTxs = {}
+function formatAmount(amount = 0) {
+    if (!amount)
+        return '₹0';
+    return amount.toLocaleString(`en-IN`, { style: 'currency', currency: 'inr' })
+}
+function fetchRibcData() {
+    return floCloudAPI.requestObjectData("RIBC", {
+        application: "InternManage",
+        receiverID: "FMyRTrz9CG4TFNM6rCQgy3VQ5NF23bY2xD"
+    });
+}
+function fetchInternData() {
+    return floBlockchainAPI
+        .readAllTxs("FThgnJLcuStugLc24FJQggmp2WgaZjrBSn")
+        .then((allTxs) => {
+            allTxs.forEach((tx) => {
+                const floId = tx.vout[0].scriptPubKey.addresses[0];
+                if (!floGlobals.appObjects.RIBC.internList[floId]) return; // not an intern
+                const { txid, floData, time } = tx
+                if (!floGlobals.internTxs[floId])
+                    floGlobals.internTxs[floId] = {
+                        total: 0,
+                        txs: []
+                    };
+                const amount = parseFloat(floData.match(/([0-9]+)/)[1]) || 0; // get amount from floData
+                floGlobals.internTxs[floId].total += amount;
+                floGlobals.internTxs[floId].txs.push({
+                    txid,
+                    amount,
+                    time
+                });
+
+            });
+            render.internPaymentList();
+        }).catch((err) => {
+            console.log(err);
+        });
+}
+const render = {
+    internCard(floId) {
+        const { total, txs } = floGlobals.internTxs[floId];
+        return html`
+            <li>
+                <a href=${`#/intern?id=${floId}`} class="intern-card">
+                    <div class="flex flex-direction-column gap-0-5">
+                        <h3>${floGlobals.appObjects.RIBC.internList[floId]}</h3>
+                        <sm-copy value=${floId}></sm-copy>
+                    </div>
+                    <div class="flex flex-direction-column">
+                        <p>Last payment: <b>${formatAmount(txs[0].amount)}</b> on ${getFormattedTime(txs[0].time, 'date-only')}</p>
+                        <p>Total paid: <b>${formatAmount(total)}</b></p>
+                    </div>
+                    <button class="button button--small button--colored margin-left-auto">
+                        See details
+                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"/></svg>
+                    </button>
+                </a>
+            </li>
+        `;
+    },
+    internPaymentList() {
+        const renderedList = []
+        for (const intern in floGlobals.internTxs) {
+            renderedList.push(render.internCard(intern));
+        }
+        renderElem(getRef("intern_payment_list"), html`${renderedList}`);
+    },
+    paymentCard(tx) {
+        const { txid, amount, time } = tx;
+        return html`
+            <li class="payment-card">
+                <time>${getFormattedTime(time, 'date-only')}</time>
+                <div class="flex align-items-center space-between">
+                    <p class="amount">${formatAmount(amount)}</p>
+                    <a class="button button--small button--colored" href=${`https://flosight.duckdns.org/tx/${txid}`} target="_blank"
+                        rel="noopener noreferrer">
+                        <svg class="icon margin-right-0-5" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24"
+                                                width="24px" fill="#000000">
+                            <path d="M0 0h24v24H0z" fill="none"></path> <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"> </path>
+                        </svg>
+                        View transaction
+                    </a>
+                </div>
+            </li>
+        `;
+    },
+    intern(floId) {
+        renderElem(getRef('intern'), html`
+            <a href="#/home" class="button button--colored margin-right-auto back-button">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none" opacity=".87"/><path d="M17.51 3.87L15.73 2.1 5.84 12l9.9 9.9 1.77-1.77L9.38 12l8.13-8.13z"/></svg>
+                Back    
+            </a>
+            <section id="intern__details" class="flex flex-direction-column gap-1">
+                <h1>${floGlobals.appObjects.RIBC.internList[floId]}</h1>
+                <div>
+                    <p style="font-size: 0.9rem;">FLO Address</p>
+                    <sm-copy value=${floId}></sm-copy>
+                </div>
+                <p>Total paid: <b>${formatAmount(floGlobals.internTxs[floId].total)}</b></p>
+            </section>
+            <section class="flex flex-direction-column gap-1">
+                <h4>Payment history</h4>
+                <ul id="payment_history">
+                    ${floGlobals.internTxs[floId].txs.map(tx => render.paymentCard(tx))}
+                </ul>
+            </section>
+        `)
+    }
+}
+
+async function main() {
+    try {
+        await fetchRibcData();
+        await fetchInternData()
+        routeTo(window.location.hash)
+    } catch (err) {
+        console.log(err);
     }
 }
