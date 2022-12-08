@@ -329,51 +329,25 @@ function fetchRibcData() {
         receiverID: "FMyRTrz9CG4TFNM6rCQgy3VQ5NF23bY2xD"
     });
 }
-function fetchInternData() {
-    return floBlockchainAPI
-        .readAllTxs("FThgnJLcuStugLc24FJQggmp2WgaZjrBSn")
-        .then((allTxs) => {
-            allTxs.forEach((tx) => {
-                const floId = tx.vout[0].scriptPubKey.addresses[0];
-                if (!floGlobals.appObjects.RIBC.internList[floId]) return; // not an intern
-                const { txid, floData, time } = tx
-                if (!floGlobals.internTxs[floId])
-                    floGlobals.internTxs[floId] = {
-                        total: 0,
-                        txs: []
-                    };
-                const amount = parseFloat(floData.match(/([0-9]+)/)[1]) || 0; // get amount from floData
-                floGlobals.internTxs[floId].total += amount;
-                floGlobals.internTxs[floId].txs.push({
-                    txid,
-                    amount,
-                    time
-                });
-
-            });
-            render.internPaymentList();
-        }).catch((err) => {
-            console.log(err);
-        });
+function fetchTransactions() {
+    return floTokenAPI.getAllTxs('FThgnJLcuStugLc24FJQggmp2WgaZjrBSn')
 }
 const render = {
     internCard(floId) {
         const { total, txs } = floGlobals.internTxs[floId];
         return html`
-            <li>
-                <a href=${`#/intern?id=${floId}`} class="intern-card">
-                    <div class="flex flex-direction-column gap-0-5">
-                        <h3>${floGlobals.appObjects.RIBC.internList[floId]}</h3>
-                        <sm-copy value=${floId}></sm-copy>
-                    </div>
-                    <div class="flex flex-direction-column">
-                        <p>Last payment: <b>${formatAmount(txs[0].amount)}</b> on ${getFormattedTime(txs[0].time, 'date-only')}</p>
-                        <p>Total paid: <b>${formatAmount(total)}</b></p>
-                    </div>
-                    <button class="button button--small button--colored margin-left-auto">
-                        See details
-                        <svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"/></svg>
-                    </button>
+            <li class="intern-card">
+                <div class="flex flex-direction-column gap-0-5">
+                    <h3>${floGlobals.appObjects.RIBC.internList[floId]}</h3>
+                    <sm-copy value=${floId}></sm-copy>
+                </div>
+                <div class="flex flex-direction-column">
+                    <p>Last payment: <b>${formatAmount(txs[0].amount)}</b> on ${getFormattedTime(txs[0].time, 'date-only')}</p>
+                    <p>Total paid: <b>${formatAmount(total)}</b></p>
+                </div>
+                <a href=${`#/intern?id=${floId}`} class="button button--small button--colored margin-left-auto">
+                    View details
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"/></svg>
                 </a>
             </li>
         `;
@@ -430,8 +404,24 @@ const render = {
 
 async function main() {
     try {
-        await fetchRibcData();
-        await fetchInternData()
+        const [txData] = await Promise.all([fetchTransactions(),fetchRibcData()]);
+        for (const txid in txData.transactions) {
+            const {parsedFloData:{tokenAmount},transactionDetails} = txData.transactions[txid]
+            const floId = transactionDetails.vout[0].scriptPubKey.addresses[0];
+            if (!floGlobals.appObjects.RIBC.internList[floId]) continue; // not an intern
+            if (!floGlobals.internTxs[floId])
+                floGlobals.internTxs[floId] = {
+                    total: 0,
+                    txs: []
+                };
+            floGlobals.internTxs[floId].total += tokenAmount;
+            floGlobals.internTxs[floId].txs.push({
+                txid,
+                amount: tokenAmount,
+                time: transactionDetails.time
+            });
+        }
+        render.internPaymentList();
         routeTo(window.location.hash)
     } catch (err) {
         console.log(err);
