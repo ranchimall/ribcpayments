@@ -531,9 +531,9 @@ ul {
   border: solid thin rgba(var(--text-color), 0.2);
 }
 #intern_payment_list {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
   padding: 1rem;
   padding-bottom: 4rem;
   margin-top: 1rem;
@@ -548,6 +548,8 @@ ul {
   padding: max(1rem, 3vw);
   border-radius: 0.5rem;
   background-color: rgba(var(--foreground-color), 1);
+  flex-basis: 24rem;
+  flex-grow: 1;
   h3 {
     font-size: 1.2rem;
   }
