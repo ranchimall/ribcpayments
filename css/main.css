@@ -581,13 +581,10 @@ ul {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  color: inherit;
-  text-decoration: none;
   padding: max(1rem, 3vw);
   border-radius: 0.5rem;
   background-color: rgba(var(--foreground-color), 1);
-  flex-basis: 24rem;
-  flex-grow: 1;
+  width: 100%;
 }
 .intern-card h3 {
   font-size: 1.2rem;
@@ -660,6 +657,12 @@ h1 {
     padding-top: 5rem;
     border-radius: 0;
     box-shadow: 0 1rem 1rem rgba(0, 0, 0, 0.06);
+  }
+}
+@media screen and (min-width: 768px) {
+  #intern_payment_list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
   }
 }
 @media (any-hover: hover) {
