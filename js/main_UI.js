@@ -121,20 +121,20 @@ window.addEventListener("load", () => {
     getRef('search_payments').addEventListener('input', e => {
         const searchQuery = e.target.value.toLowerCase();
         const filteredInterns = []
-        for (const floId in floGlobals.internTxs) {
+        floGlobals.internTxs.forEach((intern, floId) => {
             if (floId.toLowerCase().includes(searchQuery) || floGlobals.appObjects.RIBC.internList[floId].toLowerCase().includes(searchQuery))
                 filteredInterns.push({ floId, name: floGlobals.appObjects.RIBC.internList[floId] })
-        }
-        // sort filtered by relevance
+        })
+        // sort filtered by relevance to search query (name first, then floId)
         filteredInterns.sort((a, b) => {
-            if (a.floId.toLowerCase().includes(searchQuery) && b.floId.toLowerCase().includes(searchQuery)) {
-                return a.name.toLowerCase().includes(searchQuery) ? -1 : 1
-            } else if (a.floId.toLowerCase().includes(searchQuery)) {
+            if (a.name.toLowerCase().includes(searchQuery) && b.name.toLowerCase().includes(searchQuery)) {
+                return a.name.toLowerCase().indexOf(searchQuery) - b.name.toLowerCase().indexOf(searchQuery)
+            } else if (a.name.toLowerCase().includes(searchQuery)) {
                 return -1
-            } else if (b.floId.toLowerCase().includes(searchQuery)) {
+            } else if (b.name.toLowerCase().includes(searchQuery)) {
                 return 1
             } else {
-                return a.name.toLowerCase().includes(searchQuery) ? -1 : 1
+                return a.floId.toLowerCase().indexOf(searchQuery) - b.floId.toLowerCase().indexOf(searchQuery)
             }
         })
         renderElem(getRef("intern_payment_list"), html`${filteredInterns.map(intern => render.internCard(intern.floId))}`);
@@ -317,7 +317,7 @@ const slideOutUp = [
     },
 ]
 
-floGlobals.internTxs = {}
+floGlobals.internTxs = new Map()
 function formatAmount(amount = 0) {
     if (!amount)
         return '₹0';
@@ -334,7 +334,7 @@ function fetchTransactions() {
 }
 const render = {
     internCard(floId) {
-        const { total, txs } = floGlobals.internTxs[floId];
+        const { total, txs } = floGlobals.internTxs.get(floId);
         return html`
             <li class="intern-card">
                 <div class="flex flex-direction-column gap-0-5">
@@ -354,9 +354,9 @@ const render = {
     },
     internPaymentList() {
         const renderedList = []
-        for (const intern in floGlobals.internTxs) {
-            renderedList.push(render.internCard(intern));
-        }
+        floGlobals.internTxs.forEach((data, internId) => {
+            renderedList.push(render.internCard(internId));
+        })
         renderElem(getRef("intern_payment_list"), html`${renderedList}`);
     },
     paymentCard(tx) {
@@ -390,37 +390,71 @@ const render = {
                     <p style="font-size: 0.9rem;">FLO Address</p>
                     <sm-copy value=${floId}></sm-copy>
                 </div>
-                <p>Total paid: <b>${formatAmount(floGlobals.internTxs[floId].total)}</b></p>
+                <p>Total paid: <b>${formatAmount(floGlobals.internTxs.get(floId).total)}</b></p>
             </section>
             <section class="flex flex-direction-column gap-1">
                 <h4>Payment history</h4>
                 <ul id="payment_history">
-                    ${floGlobals.internTxs[floId].txs.map(tx => render.paymentCard(tx))}
+                    ${floGlobals.internTxs.get(floId).txs.map(tx => render.paymentCard(tx))}
                 </ul>
             </section>
         `)
     }
 }
-
+const oldInterns = {
+    "FEvLovuDjWo4pXX3Y4SKDh8sq1AxJzqz9Z": "Megha Rani",
+    "F765ofUHBhfXhvzrSgnPjvCvJXXCpoW6be": "Madhu Verma",
+    "FHZtDh1NPepaPbbPwW65GjnDdVV1uo8NSA":"Vridhi Raj",
+    "FKa43RxHUAdJbgV6KipQ4PvXi6Kgw4HmFn":"Aakriti Sinha",
+    "FFaB6N1ETZsykXVS2PdM5xhj5BBoqsfsXC": "Ritika Agrawal",
+    "FSdjJCJdU43a1dyWY6dRES1ekoupEjFPqQ": "Muskan Kumari",
+    "FK96PZh4NskoJfWoyqcvLpSo7YnTLWMmdD": "Shambhavi Singh",
+    "FJK9EDGhKj4Wr2zeCo3zRPXCNU6CXFFQAN": "Shivam Kumar Pandey",
+    "FPtrQK6aSCgFeSNpzC68YTznHPfiz7CCvW": "Shruti Kashyap",
+    "FHWXdnjRRJErqazye4Y9MRmE42D4Bp6Bj7": "Rashi Sanghvi",
+    "FCTGD4M3DvMKupX3j2y5f3cQNDD9i6LUp7": "Gunjan Kumar Ranjan",
+    "F8zYh6rCuorGmnMtqGFpaKGeBqQaj9WVtG": "Kriti Shreya",
+    "FFoVnVMJv8BTfbk7ij9T5jPHs7VKSz886A": "Jaidev",
+    "F87Ai2ErAMFe3UmAR7S63UYX2jE9ofaXSH": "Keerthana A V",
+    "FEzy6pzEkm1TMXf1BGQz8dXvVZM3L1HFu2": "Saloni Jaitley",
+    "FB4tu13HCxHAadvUDmgDBhvE9MtCkgRacn": "Divyansh Bhardwaj",
+    "FLzcrXhzK1XzLnku5sT6yzURBcqQ5ZDNJyv": "Tanishk Goyal",
+    "F7HVKrF68Y6YKE9XXpHhAcxt6MwRLcUD67": "Salomi Sarkar",
+    "FBYnAqhBt99XbTtCH6LAzjJ5yNZVPkYXhk": "Divyansh Bhardwaj (New FLO ID)",
+    "FF7jVqwGS8fGG9fxmbVkEvD1Qo11hDyg8b": "Ahana Chakraborty",
+    "FKknmmQd3PVaGbBbPFAJcQsARvw48NfeDF": "Prattay Mazumdar",
+    "FSoa46pVWsNuZDp26X9H9Fi6ijMk7cy7mc": "Jayant Kumar",
+    "FCqLr9nymnbh7ahta1gGC78z634y4GHJGQ": "Rakhijeet Singh",
+    "FEHKFxQxycsxw2qQQSn2Y1BCT6Mfb8EMko": "Abhijeet Anand",
+}
 async function main() {
     try {
-        const [txData] = await Promise.all([fetchTransactions(),fetchRibcData()]);
+        const [txData] = await Promise.all([fetchTransactions(), fetchRibcData()]);
+        floGlobals.appObjects.RIBC.internList = {
+            ...floGlobals.appObjects.RIBC.internList,
+            ...oldInterns
+        }
         for (const txid in txData.transactions) {
             const {parsedFloData:{tokenAmount},transactionDetails} = txData.transactions[txid]
             const floId = transactionDetails.vout[0].scriptPubKey.addresses[0];
             if (!floGlobals.appObjects.RIBC.internList[floId]) continue; // not an intern
-            if (!floGlobals.internTxs[floId])
-                floGlobals.internTxs[floId] = {
+            if (!floGlobals.internTxs.has(floId))
+                floGlobals.internTxs.set(floId,  {
                     total: 0,
                     txs: []
-                };
-            floGlobals.internTxs[floId].total += tokenAmount;
-            floGlobals.internTxs[floId].txs.push({
+                });
+            floGlobals.internTxs.get(floId).total += tokenAmount;
+            floGlobals.internTxs.get(floId).txs.push({
                 txid,
                 amount: tokenAmount,
                 time: transactionDetails.time
             });
         }
+        floGlobals.internTxs.forEach((intern) => {
+            intern.txs.sort((a,b) => b.time - a.time)
+        })
+        // sort floGlobals.internTxs by date of last payment
+        floGlobals.internTxs = new Map([...floGlobals.internTxs.entries()].sort((a,b) => b[1].txs[0].time - a[1].txs[0].time));
         render.internPaymentList();
         routeTo(window.location.hash)
     } catch (err) {
