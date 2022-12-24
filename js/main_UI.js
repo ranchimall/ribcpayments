@@ -316,7 +316,7 @@ const slideOutUp = [
         transform: 'translateY(-1rem)'
     },
 ]
-
+floGlobals.payer = 'FThgnJLcuStugLc24FJQggmp2WgaZjrBSn';
 floGlobals.internTxs = new Map()
 function formatAmount(amount = 0) {
     if (!amount)
@@ -330,7 +330,7 @@ function fetchRibcData() {
     });
 }
 function fetchTransactions() {
-    return floTokenAPI.getAllTxs('FThgnJLcuStugLc24FJQggmp2WgaZjrBSn')
+    return floTokenAPI.getAllTxs(floGlobals.payer)
 }
 const render = {
     internCard(floId) {
@@ -404,8 +404,8 @@ const render = {
 const oldInterns = {
     "FEvLovuDjWo4pXX3Y4SKDh8sq1AxJzqz9Z": "Megha Rani",
     "F765ofUHBhfXhvzrSgnPjvCvJXXCpoW6be": "Madhu Verma",
-    "FHZtDh1NPepaPbbPwW65GjnDdVV1uo8NSA":"Vridhi Raj",
-    "FKa43RxHUAdJbgV6KipQ4PvXi6Kgw4HmFn":"Aakriti Sinha",
+    "FHZtDh1NPepaPbbPwW65GjnDdVV1uo8NSA": "Vridhi Raj",
+    "FKa43RxHUAdJbgV6KipQ4PvXi6Kgw4HmFn": "Aakriti Sinha",
     "FFaB6N1ETZsykXVS2PdM5xhj5BBoqsfsXC": "Ritika Agrawal",
     "FSdjJCJdU43a1dyWY6dRES1ekoupEjFPqQ": "Muskan Kumari",
     "FK96PZh4NskoJfWoyqcvLpSo7YnTLWMmdD": "Shambhavi Singh",
@@ -427,37 +427,43 @@ const oldInterns = {
     "FCqLr9nymnbh7ahta1gGC78z634y4GHJGQ": "Rakhijeet Singh",
     "FEHKFxQxycsxw2qQQSn2Y1BCT6Mfb8EMko": "Abhijeet Anand",
 }
-async function main() {
-    try {
-        const [txData] = await Promise.all([fetchTransactions(), fetchRibcData()]);
-        floGlobals.appObjects.RIBC.internList = {
-            ...floGlobals.appObjects.RIBC.internList,
-            ...oldInterns
+function getReceiverAddress(vout) {
+    for(const output of vout) {
+        for (const address of output.scriptPubKey.addresses) {
+            if(address !== floGlobals.payer) return address
         }
-        for (const txid in txData.transactions) {
-            const {parsedFloData:{tokenAmount},transactionDetails} = txData.transactions[txid]
-            const floId = transactionDetails.vout[0].scriptPubKey.addresses[0];
-            if (!floGlobals.appObjects.RIBC.internList[floId]) continue; // not an intern
-            if (!floGlobals.internTxs.has(floId))
-                floGlobals.internTxs.set(floId,  {
-                    total: 0,
-                    txs: []
-                });
-            floGlobals.internTxs.get(floId).total += tokenAmount;
-            floGlobals.internTxs.get(floId).txs.push({
-                txid,
-                amount: tokenAmount,
-                time: transactionDetails.time
-            });
-        }
-        floGlobals.internTxs.forEach((intern) => {
-            intern.txs.sort((a,b) => b.time - a.time)
-        })
-        // sort floGlobals.internTxs by date of last payment
-        floGlobals.internTxs = new Map([...floGlobals.internTxs.entries()].sort((a,b) => b[1].txs[0].time - a[1].txs[0].time));
-        render.internPaymentList();
-        routeTo(window.location.hash)
-    } catch (err) {
-        console.log(err);
     }
+}
+function main() {
+    return Promise.all([fetchTransactions(), fetchRibcData()]).then(([txData]) => {
+            floGlobals.appObjects.RIBC.internList = {
+                ...floGlobals.appObjects.RIBC.internList,
+                ...oldInterns
+            }
+            for (const txid in txData.transactions) {
+                const { parsedFloData: { tokenAmount }, transactionDetails } = txData.transactions[txid]
+                const floId = getReceiverAddress(transactionDetails.vout);
+                if (!floGlobals.appObjects.RIBC.internList[floId]) continue; // not an intern
+                if (!floGlobals.internTxs.has(floId))
+                    floGlobals.internTxs.set(floId,  {
+                        total: 0,
+                        txs: []
+                    });
+                floGlobals.internTxs.get(floId).total += tokenAmount;
+                floGlobals.internTxs.get(floId).txs.push({
+                    txid,
+                    amount: tokenAmount,
+                    time: transactionDetails.time
+                });
+            }
+            floGlobals.internTxs.forEach((intern) => {
+                intern.txs.sort((a,b) => b.time - a.time)
+            })
+            // sort floGlobals.internTxs by date of last payment
+            floGlobals.internTxs = new Map([...floGlobals.internTxs.entries()].sort((a,b) => b[1].txs[0].time - a[1].txs[0].time));
+            render.internPaymentList();
+            routeTo(window.location.hash)
+    }).catch(err => {
+        notify(`Error fetching data: ${err}`, "error")
+    })
 }

@@ -4,7 +4,7 @@
     const tokenAPI = EXPORTS;
 
     const DEFAULT = {
-        apiURL: floGlobals.tokenURL || "https://ranchimallflo.duckdns.org/",
+        apiURL: floGlobals.tokenURL || "https://ranchimallflo-statef.duckdns.org/",
         currency: floGlobals.currency || "rupee"
     }
 
