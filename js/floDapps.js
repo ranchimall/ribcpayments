@@ -1,4 +1,4 @@
-(function(EXPORTS) { //floDapps v2.3.2d
+(function (EXPORTS) { //floDapps v2.3.3
     /* General functions for FLO Dapps*/
     'use strict';
     const floDapps = EXPORTS;
@@ -181,6 +181,7 @@
                 credentials: {},
                 //for Dapps
                 subAdmins: {},
+                trustedIDs: {},
                 settings: {},
                 appObjects: {},
                 generalData: {},
@@ -244,6 +245,12 @@
                             compactIDB.removeData("supernodes", sn, DEFAULT.root);
                         for (let sn in content.newNodes)
                             compactIDB.writeData("supernodes", content.newNodes[sn], sn, DEFAULT.root);
+                        for (let sn in content.updateNodes)
+                            compactIDB.readData("supernodes", sn, DEFAULT.root).then(r => {
+                                r = r || {}
+                                r.uri = content.updateNodes[sn];
+                                compactIDB.writeData("supernodes", r, sn, DEFAULT.root);
+                            });
                     }
                     compactIDB.writeData("lastTx", result.totalTxs, floCloudAPI.SNStorageID, DEFAULT.root);
                     compactIDB.readAllData("supernodes", DEFAULT.root).then(nodes => {
@@ -274,6 +281,12 @@
                         if (Array.isArray(content.addSubAdmin))
                             for (var k = 0; k < content.addSubAdmin.length; k++)
                                 compactIDB.writeData("subAdmins", true, content.addSubAdmin[k]);
+                        if (Array.isArray(content.removeTrustedID))
+                            for (var j = 0; j < content.removeTrustedID.length; j++)
+                                compactIDB.removeData("trustedIDs", content.removeTrustedID[j]);
+                        if (Array.isArray(content.addTrustedID))
+                            for (var k = 0; k < content.addTrustedID.length; k++)
+                                compactIDB.writeData("trustedIDs", true, content.addTrustedID[k]);
                         if (content.settings)
                             for (let l in content.settings)
                                 compactIDB.writeData("settings", content.settings[l], l)
@@ -454,7 +467,7 @@
         })
     });
 
-    floDapps.launchStartUp = function() {
+    floDapps.launchStartUp = function () {
         return new Promise((resolve, reject) => {
             initIndexedDB().then(log => {
                 console.log(log)
@@ -497,7 +510,7 @@
 
     floDapps.setAppObjectStores = appObs => initIndexedDB.appObs = appObs;
 
-    floDapps.storeContact = function(floID, name) {
+    floDapps.storeContact = function (floID, name) {
         return new Promise((resolve, reject) => {
             if (!floCrypto.validateAddr(floID))
                 return reject("Invalid floID!")
@@ -508,7 +521,7 @@
         });
     }
 
-    floDapps.storePubKey = function(floID, pubKey) {
+    floDapps.storePubKey = function (floID, pubKey) {
         return new Promise((resolve, reject) => {
             if (floID in user.pubKeys)
                 return resolve("pubKey already stored")
@@ -523,7 +536,7 @@
         });
     }
 
-    floDapps.sendMessage = function(floID, message) {
+    floDapps.sendMessage = function (floID, message) {
         return new Promise((resolve, reject) => {
             let options = {
                 receiverID: floID,
@@ -538,7 +551,7 @@
         })
     }
 
-    floDapps.requestInbox = function(callback) {
+    floDapps.requestInbox = function (callback) {
         return new Promise((resolve, reject) => {
             let lastVC = Object.keys(user.messages).sort().pop()
             let options = {
@@ -552,7 +565,7 @@
                     try {
                         if (d[v].message instanceof Object && "secret" in d[v].message)
                             d[v].message = floCrypto.decryptData(d[v].message, privKey)
-                    } catch (error) {}
+                    } catch (error) { }
                     compactIDB.writeData("messages", d[v], v, user.db_name)
                     user.messages[v] = d[v]
                 }
@@ -565,7 +578,7 @@
         })
     }
 
-    floDapps.manageAppConfig = function(adminPrivKey, addList, rmList, settings) {
+    floDapps.manageAppConfig = function (adminPrivKey, addList, rmList, settings) {
         return new Promise((resolve, reject) => {
             if (!Array.isArray(addList) || !addList.length) addList = undefined;
             if (!Array.isArray(rmList) || !rmList.length) rmList = undefined;
@@ -584,12 +597,34 @@
                 reject('Access Denied for Admin privilege')
             else
                 floBlockchainAPI.writeData(floID, JSON.stringify(floData), adminPrivKey)
-                .then(result => resolve(['Updated App Configuration', result]))
-                .catch(error => reject(error))
+                    .then(result => resolve(['Updated App Configuration', result]))
+                    .catch(error => reject(error))
         })
     }
 
-    const clearCredentials = floDapps.clearCredentials = function() {
+    floDapps.manageAppTrustedIDs = function (adminPrivKey, addList, rmList) {
+        return new Promise((resolve, reject) => {
+            if (!Array.isArray(addList) || !addList.length) addList = undefined;
+            if (!Array.isArray(rmList) || !rmList.length) rmList = undefined;
+            if (!addList && !rmList)
+                return reject("No change in list")
+            var floData = {
+                [DEFAULT.application]: {
+                    addTrustedID: addList,
+                    removeTrustedID: rmList
+                }
+            }
+            var floID = floCrypto.getFloID(adminPrivKey)
+            if (floID != DEFAULT.adminID)
+                reject('Access Denied for Admin privilege')
+            else
+                floBlockchainAPI.writeData(floID, JSON.stringify(floData), adminPrivKey)
+                    .then(result => resolve(['Updated App Configuration', result]))
+                    .catch(error => reject(error))
+        })
+    }
+
+    const clearCredentials = floDapps.clearCredentials = function () {
         return new Promise((resolve, reject) => {
             compactIDB.clearData('credentials', DEFAULT.application).then(result => {
                 localStorage.removeItem(`${DEFAULT.application}#privKey`);
@@ -599,7 +634,7 @@
         })
     }
 
-    floDapps.deleteUserData = function(credentials = false) {
+    floDapps.deleteUserData = function (credentials = false) {
         return new Promise((resolve, reject) => {
             let p = []
             p.push(compactIDB.deleteDB(user.db_name))
@@ -611,7 +646,7 @@
         })
     }
 
-    floDapps.deleteAppData = function() {
+    floDapps.deleteAppData = function () {
         return new Promise((resolve, reject) => {
             compactIDB.deleteDB(DEFAULT.application).then(result => {
                 localStorage.removeItem(`${DEFAULT.application}#privKey`)
@@ -623,7 +658,7 @@
         })
     }
 
-    floDapps.securePrivKey = function(pwd) {
+    floDapps.securePrivKey = function (pwd) {
         return new Promise(async (resolve, reject) => {
             let indexArr = localStorage.getItem(`${DEFAULT.application}#privKey`)
             if (!indexArr)
@@ -643,8 +678,8 @@
         })
     }
 
-    floDapps.verifyPin = function(pin = null) {
-        const readSharesFromIDB = function(indexArr) {
+    floDapps.verifyPin = function (pin = null) {
+        const readSharesFromIDB = function (indexArr) {
             return new Promise((resolve, reject) => {
                 var promises = []
                 for (var i = 0; i < indexArr.length; i++)
@@ -687,7 +722,7 @@
         })
     }
 
-    const getNextGeneralData = floDapps.getNextGeneralData = function(type, vectorClock = null, options = {}) {
+    const getNextGeneralData = floDapps.getNextGeneralData = function (type, vectorClock = null, options = {}) {
         var fk = floCloudAPI.util.filterKey(type, options)
         vectorClock = vectorClock || getNextGeneralData[fk] || '0';
         var filteredResult = {}
@@ -716,10 +751,10 @@
                                 let tmp = floCrypto.decryptData(data.message, key)
                                 data.message = JSON.parse(tmp)
                                 break;
-                            } catch (error) {}
+                            } catch (error) { }
                         }
                     }
-                } catch (error) {}
+                } catch (error) { }
             }
         }
         getNextGeneralData[fk] = Object.keys(filteredResult).sort().pop();
