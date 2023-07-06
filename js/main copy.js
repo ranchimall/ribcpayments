@@ -153,7 +153,7 @@ const main = (ready) => {
                             r.transactions.forEach((t) => {
                                 let amount = t.transaction.floData.match(/([0-9]+)/);
                                 let num = Number(amount[0]);
-                                let senderAddress = t.transaction.vin[0].addr;
+                                let senderAddress = t.transaction.vin[0].addr; //NOTE: should be `t.transaction.vin[0].addresses[0]` if floBlockchainAPI data
                                 let time = getDate(t.transaction.time);
                                 let li = document.createElement("li");
                                 li.style.margin = "1em 0em";
