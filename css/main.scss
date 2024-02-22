@@ -39,6 +39,7 @@ body[data-theme="dark"] {
   --green: #00e676;
   --yellow: rgb(255, 213, 5);
 }
+
 p,
 strong {
   line-height: 1.7;
@@ -58,6 +59,7 @@ a:where([class]) {
     box-shadow: 0 0 0 0.1rem rgba(var(--text-color), 1) inset;
   }
 }
+
 a {
   color: var(--accent-color);
 }
@@ -84,6 +86,7 @@ button,
   border-radius: 0.3rem;
   justify-content: center;
   flex-shrink: 0;
+
   &:focus-visible {
     outline: var(--accent-color) solid medium;
   }
@@ -96,6 +99,7 @@ button,
 .button {
   background-color: rgba(var(--text-color), 0.02);
   border: solid thin rgba(var(--text-color), 0.06);
+
   &--primary {
     color: rgba(var(--background-color), 1);
     background-color: var(--accent-color);
@@ -104,15 +108,19 @@ button,
       fill: rgba(var(--background-color), 1);
     }
   }
+
   &--colored {
     color: var(--accent-color);
+
     .icon {
       fill: var(--accent-color);
     }
   }
+
   &--danger {
     background-color: #ff737310;
     color: var(--danger-color);
+
     .icon {
       fill: var(--danger-color);
     }
@@ -126,10 +134,12 @@ button,
     border: solid rgba(var(--text-color), 0.3) 0.1rem;
     background-color: rgba(var(--foreground-color), 1);
   }
+
   &--transparent {
     background-color: transparent;
   }
 }
+
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -171,10 +181,12 @@ sm-input {
     }
   }
 }
+
 sm-spinner {
   --size: 1.5rem;
   --stroke-width: 0.1rem;
 }
+
 sm-copy {
   font-size: 0.9rem;
   font-weight: 500;
@@ -229,6 +241,7 @@ ul {
 .flex-1 {
   flex: 1;
 }
+
 .flex-shrink-0 {
   flex-shrink: 0;
 }
@@ -268,6 +281,7 @@ ul {
 .text-align-right {
   text-align: right;
 }
+
 .text-align-left {
   text-align: left;
 }
@@ -275,9 +289,11 @@ ul {
 .align-items-start {
   align-items: flex-start;
 }
+
 .align-items-center {
   align-items: center;
 }
+
 .align-content-start {
   align-content: flex-start;
 }
@@ -293,6 +309,7 @@ ul {
 .justify-start {
   justify-items: start;
 }
+
 .justify-content-start {
   justify-content: start;
 }
@@ -332,6 +349,7 @@ ul {
 .space-between {
   justify-content: space-between;
 }
+
 .space-evenly {
   justify-content: space-evenly;
 }
@@ -351,9 +369,11 @@ ul {
 .margin-right-0-3 {
   margin-right: 0.3rem;
 }
+
 .margin-right-0-5 {
   margin-right: 0.5rem;
 }
+
 .margin-right-1 {
   margin-right: 1rem;
 }
@@ -365,18 +385,23 @@ ul {
 .margin-left-auto {
   margin-left: auto;
 }
+
 .margin-right-auto {
   margin-right: auto;
 }
+
 .margin-top-1 {
   margin-top: 1rem;
 }
+
 .margin-bottom-0-5 {
   margin-bottom: 0.5rem;
 }
+
 .margin-bottom-1 {
   margin-bottom: 1rem;
 }
+
 .margin-bottom-2 {
   margin-bottom: 2rem;
 }
@@ -384,6 +409,7 @@ ul {
 .margin-block-0-5 {
   margin-block: 0.5rem;
 }
+
 .margin-block-1 {
   margin-block: 1rem;
 }
@@ -431,6 +457,7 @@ ul {
 .flow-column {
   grid-auto-flow: column;
 }
+
 .w-100 {
   width: 100%;
 }
@@ -446,6 +473,7 @@ ul {
 .weight-500 {
   font-weight: 500;
 }
+
 .ws-pre-line {
   white-space: pre-line;
 }
@@ -462,13 +490,12 @@ ul {
   position: absolute;
   border-radius: 50%;
   transform: scale(0);
-  background: radial-gradient(
-    circle,
-    rgba(var(--text-color), 0.3) 0%,
-    rgba(0, 0, 0, 0) 50%
-  );
+  background: radial-gradient(circle,
+      rgba(var(--text-color), 0.3) 0%,
+      rgba(0, 0, 0, 0) 50%);
   pointer-events: none;
 }
+
 .interact {
   position: relative;
   overflow: hidden;
@@ -480,7 +507,7 @@ ul {
   display: none;
 }
 
-.observe-empty-state:not(:empty) ~ .empty-state {
+.observe-empty-state:not(:empty)~.empty-state {
   display: none;
 }
 
@@ -496,6 +523,7 @@ ul {
     margin-left: 0.5rem;
   }
 }
+
 #loader {
   display: flex;
   flex-direction: column;
@@ -504,6 +532,7 @@ ul {
   height: 100%;
   gap: 1rem;
 }
+
 #main_header {
   display: flex;
   gap: 1rem;
@@ -512,11 +541,13 @@ ul {
   justify-content: space-between;
   padding: 1.5rem 1rem;
 }
+
 #main_logo {
   height: 1.5rem;
   width: 1.5rem;
   fill: rgba(var(--text-color), 1);
 }
+
 #search_payments {
   position: sticky;
   top: 1rem;
@@ -525,12 +556,12 @@ ul {
   margin-top: 1rem;
   --border-radius: 0.5rem;
   border-radius: 0.5rem;
-  --padding: 1rem 1.2rem;
   --background: rgba(var(--foreground-color), 1);
   box-shadow: 0 0.5rem 1.5rem rgba(0 0 0 /0.1);
   border: solid thin rgba(var(--text-color), 0.2);
   z-index: 2;
 }
+
 #intern_payment_list {
   display: flex;
   flex-wrap: wrap;
@@ -540,6 +571,7 @@ ul {
   margin-top: 1rem;
   margin: 0 auto;
 }
+
 .intern-card {
   display: flex;
   flex-direction: column;
@@ -548,13 +580,16 @@ ul {
   border-radius: 0.5rem;
   background-color: rgba(var(--foreground-color), 1);
   width: 100%;
+
   h3 {
     font-size: 1.2rem;
   }
+
   .button {
     padding-right: 0.2rem;
   }
 }
+
 #intern {
   display: flex;
   flex-direction: column;
@@ -563,11 +598,13 @@ ul {
   width: min(56rem, 100%);
   margin: 0 auto;
 }
+
 #intern__details {
   background-color: rgba(var(--foreground-color), 1);
   padding: max(1rem, 3vw);
   border-radius: 0.5rem;
 }
+
 .back-button {
   position: sticky;
   top: 1rem;
@@ -575,6 +612,7 @@ ul {
   background-color: rgba(var(--background-color), 1);
   border-radius: 2rem;
   padding: 0.5rem 0.6rem;
+
   .icon {
     height: 1em;
     width: 1em;
@@ -582,14 +620,17 @@ ul {
     margin-left: -0.2rem;
   }
 }
+
 h1 {
   font-size: 2rem;
 }
+
 #payment_history {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
+
 .payment-card {
   display: flex;
   flex-direction: column;
@@ -597,14 +638,17 @@ h1 {
   border-radius: 0.5rem;
   padding: max(1rem, 2vw);
   background-color: rgba(var(--foreground-color), 1);
+
   time {
     font-size: 0.85rem;
     color: rgba(var(--text-color), 0.8);
   }
+
   .amount {
     font-weight: 700;
   }
 }
+
 @media screen and (max-width: 768px) {
   #intern__details {
     margin: 0 -1rem;
@@ -614,12 +658,14 @@ h1 {
     box-shadow: 0 1rem 1rem rgba(0 0 0 /0.06);
   }
 }
+
 @media screen and (min-width: 768px) {
   #intern_payment_list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
   }
 }
+
 @media (any-hover: hover) {
   ::-webkit-scrollbar {
     width: 0.5rem;
@@ -634,8 +680,10 @@ h1 {
       background: rgba(var(--text-color), 0.5);
     }
   }
+
   .interact {
     transition: background-color 0.2s;
+
     &:hover {
       background-color: rgba(var(--text-color), 0.04);
     }

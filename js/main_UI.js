@@ -326,11 +326,13 @@ function fetchRibcData() {
     return floCloudAPI.requestObjectData("RIBC", {
         application: "InternManage",
         receiverID: "FMyRTrz9CG4TFNM6rCQgy3VQ5NF23bY2xD",
-        senderID: [ "FCja6sLv58e3RMy41T5AmWyvXEWesqBCkX", "FFS5hFXG7DBtdgzrLwixZLpenAmsCKRddm", "FS4jMAcSimRMrhoRhk5cjuJERS2otiwq4A" ],
+        senderID: ["FCja6sLv58e3RMy41T5AmWyvXEWesqBCkX", "FFS5hFXG7DBtdgzrLwixZLpenAmsCKRddm", "FS4jMAcSimRMrhoRhk5cjuJERS2otiwq4A"],
     })
 }
 function fetchTransactions() {
-    return floTokenAPI.getAllTxs(floGlobals.payer)
+    return floBlockchainAPI
+        .readAllTxs("FThgnJLcuStugLc24FJQggmp2WgaZjrBSn")
+        .then(({ items }) => items)
 }
 const render = {
     internCard(floId) {
@@ -428,40 +430,42 @@ const oldInterns = {
     "FEHKFxQxycsxw2qQQSn2Y1BCT6Mfb8EMko": "Abhijeet Anand",
 }
 function getReceiverAddress(vout) {
-    for(const output of vout) {
+    for (const output of vout) {
         for (const address of output.scriptPubKey.addresses) {
-            if(address !== floGlobals.payer) return address
+            if (address !== floGlobals.payer) return address
         }
     }
 }
 function main() {
-    return Promise.all([fetchTransactions(), fetchRibcData()]).then(([txData]) => {
+    return Promise.all([fetchTransactions(), fetchRibcData()]).then(([txs]) => {
         console.log(floGlobals.appObjects.RIBC.internList)
         floGlobals.appObjects.RIBC.internList = {
             ...floGlobals.appObjects.RIBC.internList,
             ...oldInterns
         }
-        for (const txid in txData.transactions) {
-            const { parsedFloData: { tokenAmount }, transactionDetails } = txData.transactions[txid]
-            const floId = getReceiverAddress(transactionDetails.vout);
-            if (!floGlobals.appObjects.RIBC.internList[floId]) continue; // not an intern
+        txs.forEach((tx) => {
+            const floId = tx.vout[0].scriptPubKey.addresses[0];
+            if (!floGlobals.appObjects.RIBC.internList[floId]) return; // not an intern
+            const { txid, floData, time } = tx
             if (!floGlobals.internTxs.has(floId))
-                floGlobals.internTxs.set(floId,  {
+                floGlobals.internTxs.set(floId, {
                     total: 0,
                     txs: []
                 });
-            floGlobals.internTxs.get(floId).total += tokenAmount;
+            const amount = parseFloat(floData.match(/([0-9]+)/)[1]) || 0; // get amount from floData
+            floGlobals.internTxs.get(floId).total += amount;
             floGlobals.internTxs.get(floId).txs.push({
                 txid,
-                amount: tokenAmount,
-                time: transactionDetails.time
+                amount,
+                time
             });
-        }
+
+        });
         floGlobals.internTxs.forEach((intern) => {
-            intern.txs.sort((a,b) => b.time - a.time)
+            intern.txs.sort((a, b) => b.time - a.time)
         })
         // sort floGlobals.internTxs by date of last payment
-        floGlobals.internTxs = new Map([...floGlobals.internTxs.entries()].sort((a,b) => b[1].txs[0].time - a[1].txs[0].time));
+        floGlobals.internTxs = new Map([...floGlobals.internTxs.entries()].sort((a, b) => b[1].txs[0].time - a[1].txs[0].time));
         render.internPaymentList();
         routeTo(window.location.hash)
     }).catch(err => {
