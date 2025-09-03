@@ -429,6 +429,21 @@ const oldInterns = {
     "FCqLr9nymnbh7ahta1gGC78z634y4GHJGQ": "Rakhijeet Singh",
     "FEHKFxQxycsxw2qQQSn2Y1BCT6Mfb8EMko": "Abhijeet Anand",
 }
+function getInputAddresses(tx) {
+  const ins = tx?.vin || [];
+  const out = [];
+  for (const v of ins) {
+    // Blockbook puts addresses in vin[i].addresses
+    const addrs = v?.addresses || (v?.addr ? [v.addr] : []);
+    for (const a of addrs) if (a) out.push(a);
+  }
+  return out;
+}
+function isFromPayer(tx) {
+  const ins = getInputAddresses(tx);
+  // Must have at least one input AND all inputs must be the cashier
+  return ins.length > 0 && ins.every(a => a === floGlobals.payer);
+}
 function getReceiverAddress(vout) {
     // return the first address in outputs that isn't the payer
     for (const output of vout) {
@@ -453,6 +468,7 @@ function main() {
             ...oldInterns
         }
         txs.forEach((tx) => {
+            if (!isFromPayer(tx)) { return; }
             const floId = getReceiverAddress(tx.vout);
             if (!floGlobals.appObjects.RIBC.internList[floId]) return; // not an intern
             const { txid, floData, time } = tx
