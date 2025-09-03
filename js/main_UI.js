@@ -430,11 +430,20 @@ const oldInterns = {
     "FEHKFxQxycsxw2qQQSn2Y1BCT6Mfb8EMko": "Abhijeet Anand",
 }
 function getReceiverAddress(vout) {
+    // return the first address in outputs that isn't the payer
     for (const output of vout) {
-        for (const address of output.scriptPubKey.addresses) {
-            if (address !== floGlobals.payer) return address
+        const addrs = output?.scriptPubKey?.addresses || [];
+        for (const address of addrs) {
+            if (address && address !== floGlobals.payer) return address;
         }
     }
+    return undefined; // no distinct receiver (shouldn't happen for payments)
+}
+        
+function parseFloAmount(floData) {
+    // matches "send 3000 rupee#" or "send 8000.0000000000 rupee#"
+    const m = /send\s+([\d.]+)\s+[A-Za-z0-9#]+/i.exec(floData || "");
+    return m ? parseFloat(m[1]) : 0;
 }
 function main() {
     return Promise.all([fetchTransactions(), fetchRibcData()]).then(([txs]) => {
@@ -444,7 +453,7 @@ function main() {
             ...oldInterns
         }
         txs.forEach((tx) => {
-            const floId = tx.vout[0].scriptPubKey.addresses[0];
+            const floId = getReceiverAddress(tx.vout);
             if (!floGlobals.appObjects.RIBC.internList[floId]) return; // not an intern
             const { txid, floData, time } = tx
             if (!floGlobals.internTxs.has(floId))
@@ -452,7 +461,7 @@ function main() {
                     total: 0,
                     txs: []
                 });
-            const amount = parseFloat(floData.match(/([0-9]+)/)[1]) || 0; // get amount from floData
+            const amount = parseFloAmount(floData); // get amount from floData
             floGlobals.internTxs.get(floId).total += amount;
             floGlobals.internTxs.get(floId).txs.push({
                 txid,
